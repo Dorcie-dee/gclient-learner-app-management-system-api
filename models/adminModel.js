@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import normalize  from "normalize-mongoose";
+import normalize from "normalize-mongoose";
 
 const adminSchema = new Schema({
   firstName: {
@@ -59,6 +59,11 @@ const adminSchema = new Schema({
   resendAttempts: { type: Number, default: 0 },
 
   lastResendAt: { type: Date },
+
+  resetToken: { type: String },
+  
+  resetTokenExpires: { type: Date }
+
 
 }, {
   timestamps: true,

@@ -28,16 +28,15 @@ export const sendingEmail = async (to, subject, html) => {
 };
 
 
-
+//admin email
 export const registerAdminMailTemplate = `
  <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
   <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
     
     <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />
 
-    <h1>Hello {{firstName}}</h1>
-    
-    <p style="font-size: 10px; color: #333;">You registered as an admin</p>
+    <h3>Welcome {{firstName}} {{lastName}}</h3>    
+    <p style="font-size: 13px; color: #333;">You registered as an admin</p>
     <p style="font-size: 16px; color: #333;">Your one-time verification code:</p>
     <p style="font-size: 32px; font-weight: bold; color: #003b5c; letter-spacing: 2px; margin: 10px 0;">
       {{verificationToken}}
@@ -61,8 +60,8 @@ export const registerLearnerMailTemplate = `
     
     <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />
 
-    <h3>Hello {{firstName}}</h3>
-     <p style="font-size: 10px; color: #333;">You registered as a learner</p>
+    <h3>Welcome {{firstName}} {{lastName}}</h3>
+     <p style="font-size: 13px; color: #333;">You registered as a learner</p>
     <p style="font-size: 16px; color: #333;">Your one-time verification code:</p>
     <p style="font-size: 32px; font-weight: bold; color: #003b5c; letter-spacing: 2px; margin: 10px 0;">
       {{verificationToken}}
@@ -77,3 +76,30 @@ export const registerLearnerMailTemplate = `
   </div>
 </div>
 `;
+
+
+
+//forgot password reset code
+export const resetPasswordMailTemplate = `
+<div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
+  <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+    
+    <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />
+
+    <h3>Hello {{firstName}} {{lastName}}</h3>
+     <p style="font-size: 13px; color: #333;">You are registered as a learner</p>
+    
+    <p style="font-size: 16px; color: #333;">Your password reset code is:</p>
+    <p style="font-size: 32px; font-weight: bold; color: #003b5c; letter-spacing: 2px; margin: 10px 0;">
+      {{resetToken}}
+    </p>
+  
+    <p style="font-size: 14px; color: #666; margin-top: 20px;">
+      It expires in 15 minutes.
+    </p>
+    
+    <br>
+    <p style="font-size: 14px; color: #888;">— GClient Team</p>
+  </div>
+</div>
+`

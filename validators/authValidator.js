@@ -80,17 +80,45 @@ export const resendVerificationValidator = Joi.object({
 });
 
 
-//login
+//login for users
 export const loginValidator = Joi.object({
   email: Joi.string().email().lowercase().trim().required().messages({
     'string.empty': 'Email is required',
     'string.email': 'Enter a valid email address',
   }),
 
-  contact: Joi.string().required(),
-
   password: Joi.string().min(6).required().messages({
     'string.empty': 'Password is required',
     'string.min': 'Password must be at least 6 characters',
   }),
 })
+
+
+//forgot password
+export const forgotPasswordValidator = Joi.object({
+  email: Joi.string().email().required
+});
+
+
+//reset password
+export const resetPasswordValidator = Joi.object({
+  newPassword: Joi.string().min(6).required(),
+  confirmPassword: Joi.valid(Joi.ref("newPassword")).required()
+});
+
+
+//reset password with token acceptance in UI
+// export const resetPasswordValidator = Joi.object({
+//   token: Joi.string().required(),
+//   newPassword: Joi.string().min(6).required(),
+//   confirmPassword: Joi.valid(Joi.ref("newPassword")).required()
+// });
+
+
+//password update/change
+export const updatePasswordValidator = Joi.object({
+  currentPassword: Joi.string().required(),
+  newPassword: Joi.string().min(6).required(),
+  confirmPassword: Joi.valid(Joi.ref("newPassword")).required()
+});
+

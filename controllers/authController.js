@@ -1,6 +1,7 @@
-import { adminModel } from "../models/admin.js";
-import { sendingEmail, registerAdminMailTemplate, registerLearnerMailTemplate } from "../utils/mailing.js";
-import { registerAdminValidator, verifyAdminValidator, resendVerificationValidator, loginValidator, registerLearnerValidator } from "../validators/authValidator.js";
+import { adminModel } from "../models/adminModel.js";
+import { learnerModel } from "../models/learnerModel.js";
+import { sendingEmail, registerAdminMailTemplate, registerLearnerMailTemplate, resetPasswordMailTemplate } from "../utils/mailing.js";
+import { registerAdminValidator, verifyAdminValidator, resendVerificationValidator, loginValidator, registerLearnerValidator, forgotPasswordValidator, resetPasswordValidator, updatePasswordValidator } from "../validators/authValidator.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -63,6 +64,7 @@ export const registerAdmin = async (req, res) => {
       const emailSubject = "Your G-Client Verification Code";
       const emailBody = registerAdminMailTemplate
         .replace('{{firstName}}', value.firstName)
+        .replace('{{lastName}}', value.lastName)
         .replace('{{verificationToken}}', verificationToken);
 
       await sendingEmail(incomingAdmin.email, emailSubject, emailBody);
@@ -84,17 +86,18 @@ export const registerAdmin = async (req, res) => {
 };
 
 
+
 //learner signup
 export const registerLearner = async (req, res) => {
   try {
-    //validate admin info
+    //validate learner info
     const { error, value } = registerLearnerValidator.validate(req.body);
     if (error) {
       return res.status(422).json({ message: error.message });
     }
 
     //checking if user doesn't exist yet
-    const learnerExisting = await adminModel.findOne({
+    const learnerExisting = await learnerModel.findOne({
       $or: [
         {
           firstName: value.firstName,
@@ -119,7 +122,7 @@ export const registerLearner = async (req, res) => {
 
 
     //create new admin record in db
-    const incomingLearner = await adminModel.create({
+    const incomingLearner = await learnerModel.create({
       ...value,
       password: hashingPassword,
       role: "Learner",
@@ -142,6 +145,7 @@ export const registerLearner = async (req, res) => {
       const emailSubject = "Your G-Client Verification Code";
       const emailBody = registerLearnerMailTemplate
         .replace('{{firstName}}', value.firstName)
+        .replace('{{lastName}}', value.lastName)
         .replace('{{verificationToken}}', verificationToken);
 
       await sendingEmail(incomingLearner.email, emailSubject, emailBody);
@@ -164,10 +168,8 @@ export const registerLearner = async (req, res) => {
 
 
 
-
-
 //admin email signup verification
-export const verifyAdmin = async (req, res) => {
+export const verifyUser = async (req, res) => {
   try {
     // Validate incoming request
     const { error, value } = verifyAdminValidator.validate(req.body);
@@ -177,41 +179,42 @@ export const verifyAdmin = async (req, res) => {
 
     const { email, verificationToken } = value;
 
-    // Check if admin exists
-    const admin = await adminModel.findOne({ email });
+    // Check if user exists
+    const user = await adminModel.findOne({ email });
 
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found." });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
     }
 
     // If already verified
-    if (admin.isVerified) {
-      return res.status(400).json({ message: "Admin is already verified." });
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User is already verified." });
     }
 
     // Check if token matches and is not expired
     const now = Date.now();
-    const isTokenExpired = !admin.verificationTokenExpiresAt || now > admin.verificationTokenExpiresAt.getTime();
+    const isTokenExpired = !user.verificationTokenExpiresAt || now > user.verificationTokenExpiresAt.getTime();
 
-    if (admin.verificationToken !== verificationToken || isTokenExpired) {
+    if (user.verificationToken !== verificationToken || isTokenExpired) {
       return res.status(400).json({ message: "Invalid or expired verification token." });
     }
 
     // Update verification status
-    admin.isVerified = true;
-    admin.verificationToken = undefined;
-    admin.verificationTokenExpiresAt = undefined;
-    admin.lastLogin = new Date();
+    user.isVerified = true;
+    user.verificationToken = undefined;
+    user.verificationTokenExpiresAt = undefined;
+    user.lastLogin = new Date();
 
-    await admin.save();
+    await user.save();
 
-    return res.status(200).json({ message: "Admin verified successfully." });
+    return res.status(200).json({ message: "User verified successfully." });
 
   } catch (error) {
     console.error("Verification error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 //resend verification token
@@ -225,52 +228,64 @@ export const resendVerificationEmail = async (req, res) => {
       return res.status(422).json({ message: error.message });
     }
 
-    // Find admin by email
-    const admin = await adminModel.findOne({ email: value.email });
+    // Find user by email
+    const user = await adminModel.findOne({ email: value.email });
 
-    if (!admin) {
-      return res.status(404).json({ message: "Admin not found." });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
     }
 
-    if (admin.isVerified) {
-      return res.status(400).json({ message: "Admin is already verified." });
+    if (user.isVerified) {
+      return res.status(400).json({ message: "User is already verified." });
     }
 
     // Rate-limiting logic: max 3 resends in 30 minutes
     const THIRTY_MINUTES = 30 * 60 * 1000;
     const now = Date.now();
 
-    if (admin.lastResendAt && now - admin.lastResendAt.getTime() < THIRTY_MINUTES) {
-      if (admin.resendAttempts >= 3) {
+    if (user.lastResendAt && now - user.lastResendAt.getTime() < THIRTY_MINUTES) {
+      if (user.resendAttempts >= 3) {
         return res.status(429).json({
           message: "You've reached the maximum number of OTP requests. Try again in 30 minutes.",
         });
       }
-      admin.resendAttempts += 1;
+      user.resendAttempts += 1;
     } else {
-      admin.resendAttempts = 1;
-      admin.lastResendAt = new Date();
+      user.resendAttempts = 1;
+      user.lastResendAt = new Date();
     }
 
     // Generate new 6-digit OTP and expiry time
     const newVerificationToken = Math.floor(100000 + Math.random() * 900000).toString();
     const newExpiry = new Date(now + 20 * 60 * 1000); // 20 minutes from now
 
-    admin.verificationToken = newVerificationToken;
-    admin.verificationTokenExpiresAt = newExpiry;
+    user.verificationToken = newVerificationToken;
+    user.verificationTokenExpiresAt = newExpiry;
 
-    await admin.save();
+    await user.save();
 
-    // Send the email
-    const emailSubject = "Your New G-Client Verification Code";
-    const emailBody = registerUserMailTemplate
-      .replace('{{firstName}}', admin.firstName)
-      .replace('{{verificationToken}}', newVerificationToken);
 
-    await sendingEmail(admin.email, emailSubject, emailBody);
+    // Select email template based on role
+    const emailSubject = "Your New GClient Verification Code";
+
+    let emailBody = "";
+    if (user.role === "Admin") {
+      emailBody = registerAdminMailTemplate
+        .replace("{{firstName}}", user.firstName)
+        .replace("{{lastName}}", user.lastName)
+        .replace("{{verificationToken}}", newVerificationToken);
+    } else {
+      emailBody = registerLearnerMailTemplate
+        .replace("{{firstName}}", user.firstName)
+        .replace("{{lastName}}", user.lastName)
+        .replace("{{verificationToken}}", newVerificationToken);
+    }
+
+    await sendingEmail(user.email, emailSubject, emailBody);
 
     return res.status(200).json({
       message: "Verification token resent successfully. Please check your email.",
+      newVerificationToken
     });
 
   } catch (err) {
@@ -283,8 +298,9 @@ export const resendVerificationEmail = async (req, res) => {
 };
 
 
+
 //login
-export const loginAll = async (req, res) => {
+export const loginUser = async (req, res) => {
   try {
     const { error, value } = loginValidator.validate(req.body);
 
@@ -311,7 +327,8 @@ export const loginAll = async (req, res) => {
       process.env.JWT_SECRET_KEY,
       { expiresIn: '24h' });
 
-    res.status(200).json({token,
+    res.status(200).json({
+      token,
       user: {
         role: user.role,
         email: user.email,
@@ -320,6 +337,197 @@ export const loginAll = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json('Error logging in');
+    res.status(500).json({ message: error.message });
   }
 }
+
+
+
+//forgot password
+export const forgotPassword = async (req, res) => {
+  try {
+    const { error, value } = forgotPasswordValidator.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const user = await adminModel.findOne({ email: value.email });
+
+    if (!user) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
+    //expire after 15 mins
+    const tokenExpires = new Date(Date.now() + 15 * 60 * 1000);
+
+    user.resetToken = resetToken;
+    user.resetTokenExpires = tokenExpires;
+    await user.save();
+
+
+    const fullResetURL = `${baseResetURL}/${resetToken}`;
+
+    //email sending
+    try {
+      const emailSubject = "Your G-Client Password Reset Code";
+      const emailBody = resetPasswordMailTemplate
+        .replace('{{firstName}}', value.firstName)
+        .replace('{{lastName}}', value.lastName)
+        .replace(`'{{resetToken}}', ${fullResetURL}`);
+
+      await sendingEmail(user.email, emailSubject, emailBody);
+
+      res.status(200).json({
+        message: "Reset code sent to email",
+        // optional: I need to remove this in production
+        resetURL: fullResetURL
+      });
+    } catch (resetEmailError) {
+      console.error('Error sending reset email code:', resetEmailError.message);
+    }
+
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+
+//reset password with only new and confirm password in UI
+export const resetPassword = async (req, res) => {
+  try {
+    const { error, value } = resetPasswordValidator.validate(req.body);
+    if (error) {
+      return res.status(400).json({ message: error.details[0].message });
+    }
+
+    const { token } = req.params;
+    const { newPassword } = value;
+
+    const admin = await adminModel.findOne({ resetToken: token });
+
+    if (!admin || new Date() > admin.resetTokenExpires) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    admin.password = await bcrypt.hash(newPassword, 10);
+    admin.resetToken = undefined;
+    admin.resetTokenExpires = undefined;
+
+    await admin.save();
+
+    res.status(200).json({ message: "Password reset successful" });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+//reset password which includes token input as a placeholder in the UI
+// export const resetPassword = async (req, res) => {
+//   try {
+//     const { error, value } = resetPasswordValidator.validate(req.body);
+
+//     if (error) {
+//       return res.status(400).json({ message: error.details[0].message });
+//     }
+
+//     const { token, newPassword } = value;
+//     const admin = await adminModel.findOne({ resetToken: token });
+//     if (!admin || new Date() > admin.resetTokenExpires) {
+//       return res.status(400).json({ message: "Invalid or expired reset token" });
+//     }
+
+//     admin.password = await bcrypt.hash(newPassword, 10);
+//     admin.resetToken = undefined;
+//     admin.resetTokenExpires = undefined;
+
+//     await admin.save();
+
+//     res.status(200).json({ message: "Password reset successful" });
+//   } catch (error) {
+//     res.status(500).json({ message: "Server error", error: err.message });
+
+//   }
+// };
+
+
+
+//password update/change
+export const updatePassword = async (req, res) => {
+  try {
+    if (!req.auth || !req.auth.id) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    //validating input
+    const { error, value } = updatePasswordValidator.validate(req.body);
+    if (error) {
+      return res.status(422).json({ message: error.message });
+    }
+
+    //extracting validated data
+    const { currentPassword, newPassword } = value;
+
+    //updating user password
+    const updatedPassword = await adminModel.findById(
+      req.auth.id
+    );
+    //comparing password
+    const isTheSame = await bcrypt.compare(currentPassword, updatedPassword.password);
+
+    if (!isTheSame) {
+      return res.status(401).json({ message: "Incorrect current password" });
+    }
+
+    updatedPassword.password = await bcrypt.hash(newPassword, 10);
+    await admin.save();
+
+    res.status(200).json({
+      message: "Password updated successfully",
+      pass: updatedPassword
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+export const getAuthenticatedUser = async (req, res, next) => {
+  try {
+    const userId = req.auth?.id;
+
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: No user ID found" });
+    }
+
+    const user = await adminModel.findById(userId).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
