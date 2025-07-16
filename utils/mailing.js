@@ -87,7 +87,7 @@ export const resetPasswordMailTemplate = `
     <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />
 
     <h3>Hello {{firstName}} {{lastName}}</h3>
-     <p style="font-size: 13px; color: #333;">You are registered as a learner</p>
+     <p style="font-size: 13px; color: #333;">You are registered as {{user}}</p>
     
     <p style="font-size: 16px; color: #333;">Your password reset code is:</p>
     <p style="font-size: 32px; font-weight: bold; color: #003b5c; letter-spacing: 2px; margin: 10px 0;">

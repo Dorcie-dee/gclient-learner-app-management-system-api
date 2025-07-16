@@ -1,7 +1,7 @@
 import { adminModel } from "../models/adminModel.js";
 import { learnerModel } from "../models/learnerModel.js";
 import { sendingEmail, registerAdminMailTemplate, registerLearnerMailTemplate, resetPasswordMailTemplate } from "../utils/mailing.js";
-import { registerAdminValidator, verifyAdminValidator, resendVerificationValidator, loginValidator, registerLearnerValidator, forgotPasswordValidator, resetPasswordValidator, updatePasswordValidator } from "../validators/authValidator.js";
+import { registerAdminValidator, verifyAdminValidator, resendVerificationValidator, loginValidator, registerLearnerValidator, forgotPasswordValidator, resetPasswordValidator, updatePasswordValidator, profileUpdateAdminValidator } from "../validators/authValidator.js";
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 
@@ -86,7 +86,6 @@ export const registerAdmin = async (req, res) => {
 };
 
 
-
 //learner signup
 export const registerLearner = async (req, res) => {
   try {
@@ -167,7 +166,6 @@ export const registerLearner = async (req, res) => {
 };
 
 
-
 //admin email signup verification
 export const verifyUser = async (req, res) => {
   try {
@@ -179,8 +177,21 @@ export const verifyUser = async (req, res) => {
 
     const { email, verificationToken } = value;
 
-    // Check if user exists
-    const user = await adminModel.findOne({ email });
+    // Check if user exists. OPTION 1, works with only admins
+    // const user = await adminModel.findOne({ email });
+
+    //OPTION 2. picking from my utils/findUserByEmail
+    // const { user, role } = await findUserByEmail(email);
+
+
+    // Attempt to find user in both models. OPTION 3. picks both admins and learners
+    let user = await adminModel.findOne({ email });
+    let role = 'Admin';
+
+    if (!user) {
+      user = await learnerModel.findOne({ email });
+      role = 'Learner';
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -209,12 +220,15 @@ export const verifyUser = async (req, res) => {
 
     return res.status(200).json({ message: "User verified successfully." });
 
+    //will use it when i wanna go with the findUserByEmail util. OPTION 2
+    // return res.status(200).json({ message: `${role} verified successfully.` });
+
+
   } catch (error) {
     console.error("Verification error:", error);
     return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 
 //resend verification token
@@ -229,7 +243,17 @@ export const resendVerificationEmail = async (req, res) => {
     }
 
     // Find user by email
-    const user = await adminModel.findOne({ email: value.email });
+    // const user = await adminModel.findOne({ email: value.email });
+
+    const { email } = value
+    //find user by email
+    let user = await adminModel.findOne({ email });
+    let role = 'Admin';
+
+    if (!user) {
+      user = await learnerModel.findOne({ email });
+      role = 'Learner';
+    }
 
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -298,7 +322,6 @@ export const resendVerificationEmail = async (req, res) => {
 };
 
 
-
 //login
 export const loginUser = async (req, res) => {
   try {
@@ -309,7 +332,18 @@ export const loginUser = async (req, res) => {
     }
 
     //if email exists
-    const user = await adminModel.findOne({ email: value.email });
+    // const user = await adminModel.findOne({ email: value.email });
+
+    const { email } = value
+    let user = await adminModel.findOne({ email });
+    let role = 'Admin';
+
+    if (!user) {
+      user = await learnerModel.findOne({ email });
+      role = 'Learner';
+    }
+
+
     if (!user) {
       return res.status(404).json('User not found')
     };
@@ -342,7 +376,6 @@ export const loginUser = async (req, res) => {
 }
 
 
-
 //forgot password
 export const forgotPassword = async (req, res) => {
   try {
@@ -351,10 +384,20 @@ export const forgotPassword = async (req, res) => {
       return res.status(400).json({ message: error.details[0].message });
     }
 
-    const user = await adminModel.findOne({ email: value.email });
+    // const user = await adminModel.findOne({ email: value.email });
+
+    const { email } = value;
+    let user = await adminModel.findOne({ email });
+    let role = 'Admin';
 
     if (!user) {
-      return res.status(404).json({ message: "Admin not found" });
+      user = await learnerModel.findOne({ email });
+      role = 'Learner';
+    }
+
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
     const resetToken = Math.floor(100000 + Math.random() * 900000).toString();
@@ -366,32 +409,33 @@ export const forgotPassword = async (req, res) => {
     await user.save();
 
 
-    const fullResetURL = `${baseResetURL}/${resetToken}`;
+    const resetURL = `${process.env.BASE_RESET_URL}/${resetToken}`;
 
     //email sending
     try {
       const emailSubject = "Your G-Client Password Reset Code";
       const emailBody = resetPasswordMailTemplate
-        .replace('{{firstName}}', value.firstName)
-        .replace('{{lastName}}', value.lastName)
-        .replace(`'{{resetToken}}', ${fullResetURL}`);
+        .replace('{{firstName}}', user.firstName)
+        .replace('{{lastName}}', user.lastName)
+        .replace('{{resetToken}}', resetURL)
+        .replace('{{user}}', role);
 
       await sendingEmail(user.email, emailSubject, emailBody);
 
       res.status(200).json({
         message: "Reset code sent to email",
         // optional: I need to remove this in production
-        resetURL: fullResetURL
+        resetURL: resetURL
       });
     } catch (resetEmailError) {
       console.error('Error sending reset email code:', resetEmailError.message);
+      res.status(500).json({ message: "Failed to send reset email.", error: error.message });
     }
 
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
-
 
 
 //reset password with only new and confirm password in UI
@@ -405,23 +449,33 @@ export const resetPassword = async (req, res) => {
     const { token } = req.params;
     const { newPassword } = value;
 
-    const admin = await adminModel.findOne({ resetToken: token });
+    // const user = await adminModel.findOne({ resetToken: token });
 
-    if (!admin || new Date() > admin.resetTokenExpires) {
+
+    let user = await adminModel.findOne({ resetToken: token });
+    let role = 'Admin';
+
+    if (!user) {
+      user = await learnerModel.findOne({ resetToken: token });
+      role = 'Learner';
+    }
+
+    if (!user || new Date() > user.resetTokenExpires) {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-    admin.password = await bcrypt.hash(newPassword, 10);
-    admin.resetToken = undefined;
-    admin.resetTokenExpires = undefined;
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetToken = undefined;
+    user.resetTokenExpires = undefined;
 
-    await admin.save();
+    await user.save();
 
     res.status(200).json({ message: "Password reset successful" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 //reset password which includes token input as a placeholder in the UI
 // export const resetPassword = async (req, res) => {
@@ -452,7 +506,6 @@ export const resetPassword = async (req, res) => {
 // };
 
 
-
 //password update/change
 export const updatePassword = async (req, res) => {
   try {
@@ -481,7 +534,7 @@ export const updatePassword = async (req, res) => {
     }
 
     updatedPassword.password = await bcrypt.hash(newPassword, 10);
-    await admin.save();
+    await updatedPassword.save();
 
     res.status(200).json({
       message: "Password updated successfully",
@@ -493,22 +546,7 @@ export const updatePassword = async (req, res) => {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//getting authenticated user
 export const getAuthenticatedUser = async (req, res, next) => {
   try {
     const userId = req.auth?.id;
@@ -517,8 +555,17 @@ export const getAuthenticatedUser = async (req, res, next) => {
       return res.status(401).json({ message: "Unauthorized: No user ID found" });
     }
 
-    const user = await adminModel.findById(userId).select("-password");
+    // const user = await adminModel.findById(userId).select("-password");
 
+    let user = await adminModel.findById(userId).select("-password");
+    let role = "Admin";
+
+    if (!user) {
+      user = await learnerModel.findById(userId).select("-password");
+      role = "Learner";
+    }
+
+    //.select({ password: false });
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -529,5 +576,43 @@ export const getAuthenticatedUser = async (req, res, next) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+//profile updating using put
+export const profileUpdate = async (req, res, next) => {
+  try {
+    if (!req.auth || !req.auth.id) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    // Validate incoming request
+    const { error, value } = profileUpdateAdminValidator.validate({
+      ...req.body,
+      profileImage: req.file?.filename
+      });
+    if (error) {
+      return res.status(422).json({ message: error.details[0].message });
+    }
+
+    // Perform replace operation
+    const result = await adminModel.findOneAndReplace(
+      { _id: req.params.id },
+      value,
+      { returnDocument: "after" }
+    );
+
+    // If no record is found, return a 404 error
+    if (!result) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    // Return the updated document
+    res.status(200).json(result);
+  } catch (error) {
+    next(error);
+  }
+};
+
 
 
