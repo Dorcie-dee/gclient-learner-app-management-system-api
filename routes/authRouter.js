@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { forgotPassword, getAuthenticatedUser, loginUser, profileUpdate, registerAdmin, registerLearner, resendVerificationEmail, resetPassword, updatePassword, verifyUser 
+import { forgotPassword, getAuthenticatedUser, loginUser, logoutAdmin, profileUpdate, registerAdmin, registerLearner, resendVerificationEmail, resetPassword, updatePassword, verifyUser 
 } from "../controllers/authController.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 
@@ -26,14 +26,18 @@ authRouter.post('/forgot-password', forgotPassword);
 //resend password
 authRouter.post('/reset-password/:token', resetPassword);
 
+//updating user profile
+authRouter.put('/update', isAuthenticated, profileUpdate);
+
 //change password
 authRouter.post('/change-password', isAuthenticated, updatePassword);
 
 //get authenticated user info
 authRouter.get('/check-auth', isAuthenticated, getAuthenticatedUser);
 
-//updating user profile
-authRouter.put('/update', isAuthenticated, profileUpdate);
+
+//logout
+authRouter.post('/logout', isAuthenticated, logoutAdmin);
 
 
 

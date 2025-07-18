@@ -124,17 +124,18 @@ export const updatePasswordValidator = Joi.object({
 
 
 
+
 //admin profile update
 export const profileUpdateAdminValidator = Joi.object({
-  firstName: Joi.string().trim().required().messages({
+  firstName: Joi.string().trim().messages({
     'string.empty': 'First name is required',
   }),
 
-  lastName: Joi.string().trim().required().messages({
+  lastName: Joi.string().trim().messages({
     'string.empty': 'Last name is required',
   }),
 
-  email: Joi.string().email().lowercase().trim().required().messages({
+  email: Joi.string().email().lowercase().trim().messages({
     'string.empty': 'Email is required',
     'string.email': 'Email must be a valid address',
   }),
@@ -145,13 +146,13 @@ export const profileUpdateAdminValidator = Joi.object({
 
   location: Joi.string(),
 
-  password: Joi.string().min(6).required().messages({
+  password: Joi.string().min(6).messages({
     'string.empty': 'Password is required',
     'string.min': 'Password must be at least 6 characters',
   }),
 
-  confirmPassword: Joi.any().valid(Joi.ref('password')).required().messages({
+  confirmPassword: Joi.any().valid(Joi.ref('password')).messages({
     'any.only': 'Passwords do not match',
     'any.required': 'Please confirm your password',
   }),
-}).with('password', 'confirmPassword');
+});

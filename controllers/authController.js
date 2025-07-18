@@ -590,16 +590,28 @@ export const profileUpdate = async (req, res, next) => {
     const { error, value } = profileUpdateAdminValidator.validate({
       ...req.body,
       profileImage: req.file?.filename
+    },
+      {
+        stripUnknown: false,
+        abortEarly: false
       });
+
+
     if (error) {
       return res.status(422).json({ message: error.details[0].message });
     }
 
     // Perform replace operation
-    const result = await adminModel.findOneAndReplace(
-      { _id: req.params.id },
-      value,
-      { returnDocument: "after" }
+    // const result = await adminModel.findByIdAndUpdate(
+    //   { _id: req.auth.id },
+    //   value,
+    //   { returnDocument: "after" }
+    // );
+
+    const result = await adminModel.findByIdAndUpdate(
+      req.auth.id,
+      { $set: value },
+      { new: true, runValidators: true },
     );
 
     // If no record is found, return a 404 error
@@ -611,6 +623,25 @@ export const profileUpdate = async (req, res, next) => {
     res.status(200).json(result);
   } catch (error) {
     next(error);
+  }
+};
+
+
+
+
+//logout
+export const logoutAdmin = async (req, res) => {
+  try {
+    //verify token using middleware
+    const adminId = req.auth?.id;
+
+    if (!adminId) {
+      return res.status(401).json({ message: "Unauthorized: Admin not authenticated" });
+    }
+
+    return res.status(200).json({ message: "Logout successful" });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
