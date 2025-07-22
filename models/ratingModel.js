@@ -1,4 +1,3 @@
-import { required } from "joi";
 import { model, Schema, Types } from "mongoose";
 import normalize from "normalize-mongoose";
 
@@ -8,14 +7,14 @@ const ratingSchema = new Schema({
     ref: 'Learner',
     required: true
   },
-  
+
   track: {
     type: Types.ObjectId,
     ref: 'Track',
     required: true
   },
 
-  rating: {type: String},
+  rating: {type: String, enum: ["1", "2", "3", "4", "5"], required: true},
 
   review: {type: String}
 

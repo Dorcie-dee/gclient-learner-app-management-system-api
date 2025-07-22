@@ -1,3 +1,5 @@
+import { courseModel } from "../models/courseModel.js";
+import { ratingModel } from "../models/ratingModel.js";
 import { trackModel } from "../models/trackModel.js";
 import { createTrackValidator, updateTrackValidator } from "../validators/trackValidator.js";
 
@@ -49,11 +51,13 @@ export const getAllTracks = async (req, res, next) => {
       })
       .populate({
         path: 'courses', //ref in trackModel
-        select: '_id admin track title stacks image createdAt updatedAt'
+        // select: '_id admin track title stacks image createdAt updatedAt'
+        select: '-_v'
       })
       .populate({
         path: 'ratings', //ref in trackModel
-        select: '_id learner track rating review createdAt updatedAt'
+        // select: '_id learner track rating review createdAt updatedAt'
+        select: '-_v'
       })
       .sort({ createdAt: -1 }); // Latest first
 
@@ -74,7 +78,7 @@ export const getTrackById = async (req, res) => {
 
     const getTrackById = await trackModel.findById(req.params.id).exec();
     if (!getTrackById) {
-      return res.status(404).json({ message: "Ad not found" })
+      return res.status(404).json({ message: "Track not found" })
     };
 
     res.status(200).json(getTrackById);
@@ -122,7 +126,7 @@ export const updateTrack = async (req, res, next) => {
     // console.log(error)
 
     // Update the track
-    const result = await adModel.findByIdAndUpdate(req.params.id, value, {
+    const result = await trackModel.findByIdAndUpdate(req.params.id, value, {
       new: true,
       runValidators: true,
     });
@@ -141,25 +145,35 @@ export const updateTrack = async (req, res, next) => {
 
 
 //delete track
-export const deleteTrack = async (req, res, next) => {
+export const deleteTrack = async (req, res) => {
   try {
     if (!req.auth || !req.auth.id) {
       return res.status(401).json({ message: "Unauthorized access" });
     } //or i can just add isAuthorised at the router side
 
-    const { id } = req.params;
-    await trackModel.findByIdAndDelete(id).exec();
-    if (!updateTrack) {
-      return res.status(404).json({
-        message: "Track not found!",
-      });
-    }
+    const trackId = req.params.id;
 
-    res.json({ message: "Track deleted successfully!" });
+    const track = await trackModel.findById(trackId);
+    if (!track) {
+      return res.status(404).json({ message: "Track not found!" });
+    };
+
+
+    // Delete associated courses
+    await courseModel.deleteMany({ track: trackId });
+
+    // Delete associated ratings
+    await ratingModel.deleteMany({ track: trackId });
+
+    // Delete the track itself
+    await trackModel.findByIdAndDelete(trackId);
+
+    res.json({ message: "Track and associated data deleted successfully!" });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 
 
