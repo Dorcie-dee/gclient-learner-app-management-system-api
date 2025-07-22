@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from 'cors';
 import authRouter from "./routes/authRouter.js";
+import trackRouter from "./routes/trackRoute.js";
 
 
 //database connection
@@ -31,6 +32,7 @@ app.use(express.json());
 
 //use routes
 app.use("/api/auth", authRouter);
+app.use("/api", trackRouter);
 
 
 

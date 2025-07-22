@@ -62,7 +62,11 @@ const adminSchema = new Schema({
 
   resetToken: { type: String },
   
-  resetTokenExpires: { type: Date }
+  resetTokenExpires: { type: Date }, 
+
+  profileImage: {type: String},
+
+  location: {type: String}
 
 
 }, {
