@@ -21,7 +21,7 @@ export const createTrack = async (req, res, next) => {
 
     //save track
     const incomingTrack = await trackModel.create({
-      value,
+      ...value,
       admin: req.auth.id
     });
     res.status(201).json({
@@ -31,9 +31,12 @@ export const createTrack = async (req, res, next) => {
     });
 
   } catch (error) {
-    if (error.name === 'MongooseError') {
-      return res.status(409).json(error.message);
-    }
+    console.error('Track creation error:', error);
+
+    return res.status(500).json({
+      message: 'Server error',
+      error: error.message || 'Unknown error',
+    });
   }
   next(error);
 }
@@ -173,6 +176,82 @@ export const deleteTrack = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
+
+//search tracks
+export const searchTracks = async (req, res, next) => {
+  try {
+    const {
+      name = '',
+      instructor = '',
+      duration = '',
+      minPrice = 0,
+      maxPrice = 1000000,
+      sortBy = 'createdAt', // default sort field
+      order = 'desc'         // default order
+    } = req.query;
+
+    const query = {
+      ...(name && { name: { $regex: name, $options: 'i' } }),
+      ...(instructor && { instructor: { $regex: instructor, $options: 'i' } }),
+      ...(duration && { duration }),
+      price: {
+        $gte: Number(minPrice),
+        $lte: Number(maxPrice) || 1000000
+      }
+    };
+
+    // Determine sorting logic
+    const sortField = sortBy;
+    const sortOrder = order === 'asc' ? 1 : -1;
+
+    const tracks = await trackModel.find(query)
+      .sort({ [sortField]: sortOrder })
+      .lean();
+
+    res.status(200).json({
+      success: true,
+      count: tracks.length,
+      data: tracks
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+
+//OR
+// export const searchTracks = async (req, res, next) => {
+//   try {
+//     // 1. Parse query parameters
+//     const { name, instructor, minPrice, maxPrice } = req.query;
+
+//     if (name) {
+//       query.name = { $regex: name, $options: "i" };
+//     }
+
+//     if (instructor) {
+//       query.instructor = { $regex: instructor, $options: "i" };
+//     }
+
+//     if (duration) {
+//       query.duration = { $regex: duration, $options: "i" };
+//     }
+
+//     if (minPrice || maxPrice) {
+//       query.price = {};
+//       if (minPrice) query.price.$gte = Number(minPrice);
+//       if (maxPrice) query.price.$lte = Number(maxPrice);
+//     }
+
+//     const results = await trackModel.find(query).populate("admin", "fullName email");
+
+//     res.status(200).json(results);
+//   } catch (error) {
+//     next(error);
+//   }
+// };
+
 
 
 

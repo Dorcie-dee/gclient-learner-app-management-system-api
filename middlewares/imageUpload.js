@@ -1,3 +1,4 @@
+import multer from "multer";
 import {v2 as cloudinary} from 'cloudinary';
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 
@@ -8,6 +9,8 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+
+//track image upload
 export const trackImageUpload = multer({
   storage: new CloudinaryStorage({
     cloudinary,
@@ -16,3 +19,15 @@ export const trackImageUpload = multer({
     },
   }),
 });
+
+
+//course image upload
+export const courseImageUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: {
+      folder: "/gclient-api/courses/image-upload"
+    },
+  }),
+});
+

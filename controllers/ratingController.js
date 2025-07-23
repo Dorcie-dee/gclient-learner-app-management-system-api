@@ -2,7 +2,7 @@ import { ratingModel } from "../models/ratingModel.js";
 import { giveRatingValidator, updateRatingValidator } from "../validators/ratingValidator.js";
 
 
-//learner give rating
+//learner gives rating. Has an endpoint at trackRoute.js
 export const giveRating = async (req, res) => {
   try {
     const { error, value } = giveRatingValidator.validate(req.body)
@@ -10,10 +10,13 @@ export const giveRating = async (req, res) => {
       return res.status(422).json(error)
     };
 
+    const learnerId = req.auth.id;
+    const trackId = req.params.id;
+
     // Check for existing rating by this learner on the same track
     const existing = await ratingModel.findOne({
-      learner: req.auth.id,
-      track: value.track,
+      learner: learnerId,
+      track: trackId,
     });
 
     if (existing) {
@@ -25,7 +28,8 @@ export const giveRating = async (req, res) => {
 
     const incomingRating = await ratingModel.create({
       ...value,
-      learner: req.auth.id,
+      learner: learnerId,
+      track: trackId,
     });
 
     //save rating
@@ -36,7 +40,7 @@ export const giveRating = async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(409).json(error.message);
+    return res.status(500).json({message: error.message});
   }
 }
 
@@ -72,7 +76,7 @@ export const getAllRatings = async (req, res, next) => {
 };
 
 
-//get rating by id
+//get rating by id. Has an endpoint at trackRoute.js
 export const getRatingById = async (req, res) => {
   try {
 

@@ -9,10 +9,14 @@ const courseSchema = new Schema({
     required: true
   },
 
+  track: {
+      type: Types.ObjectId,
+      ref: 'Track',
+      required: true
+    },
+
   title: {type: String, required: true},
-  
-  track: {type:Number, required: true},
-  
+    
   image: {type: String, required: true},
   
   stacks: {type: String, required: true},
