@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createTrack, deleteTrack, getAdminTracks, getAllTracks, getTrackById, updateTrack } from "../controllers/trackController.js";
+import { createTrack, deleteTrack, getAdminTracks, getAllTracks, getTrackById, searchTracks, updateTrack } from "../controllers/trackController.js";
 import { isAuthenticated, isAuthorized } from "../middlewares/authMiddleware.js";
 import { trackImageUpload } from "../middlewares/imageUpload.js";
 import { getRatingById, giveRating } from "../controllers/ratingController.js";
@@ -12,6 +12,9 @@ trackRouter.post('/tracks', isAuthenticated, isAuthorized(['Admin']), trackImage
 
 //all tracks in db
 trackRouter.get('/tracks', getAllTracks);
+
+//search tracks
+trackRouter.get('/tracks/search', searchTracks);
 
 //track by id
 trackRouter.get('/tracks/:id', getTrackById);
@@ -30,5 +33,7 @@ trackRouter.get('/tracks/:id/ratings', isAuthenticated, getRatingById);
 
 //post track ratings
 trackRouter.post('/tracks/:id/ratings', isAuthenticated,isAuthorized(['Learner']), giveRating);
+
+
 
 export default trackRouter;
