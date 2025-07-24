@@ -31,8 +31,6 @@ export const createTrack = async (req, res, next) => {
     });
 
   } catch (error) {
-    console.error('Track creation error:', error);
-
     return res.status(500).json({
       message: 'Server error',
       error: error.message || 'Unknown error',
@@ -43,7 +41,7 @@ export const createTrack = async (req, res, next) => {
 
 
 //get all tracks
-export const getAllTracks = async (req, res, next) => {
+export const getAllTracks = async (req, res) => {
   try {
     // Fetch tracks with related data
     const tracks = await trackModel
@@ -70,7 +68,7 @@ export const getAllTracks = async (req, res, next) => {
       tracks
     });
   } catch (error) {
-    next(error);
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -120,13 +118,11 @@ export const updateTrack = async (req, res, next) => {
 
     // Validate request body
     const { error, value } = updateTrackValidator.validate({
-      ...req.body,
-      image
+      ...req.body, image
     });
     if (error) {
       return res.status(422).json({ message: error.details[0].message });
     }
-    // console.log(error)
 
     // Update the track
     const result = await trackModel.findByIdAndUpdate(req.params.id, value, {
@@ -140,7 +136,11 @@ export const updateTrack = async (req, res, next) => {
     }
 
     // Return the updated track
-    res.status(200).json(result);
+    res.status(200).json({
+      success: true,
+      message: 'Track updated successfully',
+      track: result,
+  });
   } catch (error) {
     next(error);
   }
@@ -220,10 +220,13 @@ export const searchTracks = async (req, res, next) => {
 };
 
 
+
+
+
 //OR
 // export const searchTracks = async (req, res, next) => {
 //   try {
-//     // 1. Parse query parameters
+//     //parse query parameters
 //     const { name, instructor, minPrice, maxPrice } = req.query;
 
 //     if (name) {

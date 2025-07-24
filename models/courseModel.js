@@ -10,21 +10,31 @@ const courseSchema = new Schema({
   },
 
   track: {
-      type: Types.ObjectId,
-      ref: 'Track',
-      required: true
-    },
+    type: Types.ObjectId,
+    ref: 'Track',
+    required: true
+  },
 
-  title: {type: String, required: true},
-    
-  image: {type: String, required: true},
-  
-  stacks: {type: String, required: true},
-  
-  description: {type: String, required: true}
-  
-}, {timestamps: true});
+  title: { type: String, required: true },
 
+  image: { type: String, required: true },
+
+  // stacks: {type: String, required: true},
+
+  description: { type: String, required: true }
+
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
+
+
+// courseSchema.virtual('track', {
+//   ref: 'Track',
+//   localField: '_id',
+//   foreignField: 'course'
+// });
 
 courseSchema.plugin(normalize);
 
