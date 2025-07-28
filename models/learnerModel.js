@@ -1,5 +1,5 @@
 import { Schema, model } from "mongoose";
-import normalize  from "normalize-mongoose";
+import normalize from "normalize-mongoose";
 
 const learnerSchema = new Schema({
   firstName: {
@@ -33,6 +33,16 @@ const learnerSchema = new Schema({
     default: 'Learner',
     required: true
   },
+
+  contact: { type: String, trim: true },
+
+  description: { type: String },
+
+  location: { type: String },
+
+  profileImage: { type: String },
+
+  disabled: { type: Boolean, default: false},
 
   isVerified: {
     type: Boolean,

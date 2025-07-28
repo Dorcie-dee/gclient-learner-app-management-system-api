@@ -4,6 +4,7 @@ import cors from 'cors';
 import authRouter from "./routes/authRouter.js";
 import trackRouter from "./routes/trackRoute.js";
 import courseRouter from "./routes/courseRoute.js";
+import learnerRouter from "./routes/learnerRoute.js";
 
 
 //database connection
@@ -33,6 +34,7 @@ app.use(express.json());
 
 //use routes
 app.use("/api/auth", authRouter);
+app.use("/api", learnerRouter);
 app.use("/api", trackRouter);
 app.use("/api", courseRouter);
 
