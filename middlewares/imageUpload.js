@@ -31,3 +31,14 @@ export const courseImageUpload = multer({
   }),
 });
 
+
+//learner image upload
+export const learnerImageUpload = multer({
+  storage: new CloudinaryStorage({
+    cloudinary,
+    params: {
+      folder: "gcliet-api/learners/image-upload"
+    },
+  }),
+});
+

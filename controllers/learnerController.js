@@ -3,7 +3,7 @@ import { updateLearnerPasswordValidator, updateLearnerValidator } from "../valid
 
 
 
-//profile updating using put
+//learner profile update using put
 export const updateLearner = async (req, res, next) => {
   try {
     if (!req.auth || !req.auth.id) {
@@ -85,47 +85,48 @@ export const updateLearnerPassword = async (req, res) => {
 };
 
 
-//get all tracks
-export const getAllLearner = async (req, res) => {
+//get all learners
+export const getAllLearners = async (req, res) => {
   try {
     // Fetch learners with related data
     const learners = await learnerModel
       .find()
-      .populate({
-        path: 'admin', //ref in trackModel
-        select: 'firstName lastName email role contact isVerified lastLogin createdAt updatedAt profileImage location description'
-      })
-      .populate({
-        path: 'ratings', //ref in trackModel
-        // select: '_id learner track rating review createdAt updatedAt'
-        select: '-_v'
-      })
-      .sort({ createdAt: -1 }); // Latest first
-
+      .select("-password")
     res.status(200).json({
       success: true,
-      count: tracks.length,
-      tracks
+      count: learners.length,
+      data: learners
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      success: false,
+      message: "Failed to retrieve learners",
+      error: error.message
+    });
   }
 };
 
 
 //get single learner
-export const getOneLearner = async (req, res) => {
+export const getSingleLearner = async (req, res) => {
   try {
+    const { id } = req.params;
 
-    const getSingleLearner = await learnerModel.findById(req.auth.id).exec();
-    if (!getSingleLearner) {
+    const learner = await learnerModel.findById(id).select("-password");
+    if (!learner) {
       return res.status(404).json({ message: "Learner not found" })
     };
 
-    res.status(200).json(getSingleLearner);
+    res.status(200).json({
+      success: true,
+      data: learner
+    });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({
+      message: "Failed to fetch learner",
+      error: error.message
+    });
   }
 };
 

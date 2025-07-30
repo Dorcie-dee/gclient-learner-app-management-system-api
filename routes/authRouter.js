@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { forgotPassword, getAuthenticatedUser, loginUser, logoutAdmin, profileUpdate, registerAdmin, resendVerificationEmail, resetPassword, updatePassword, verifyUser 
+import { forgotPassword, getAuthenticatedUser, loginUser, logoutAdmin, profileUpdate, registerAdmin, registerLearner, resendVerificationEmail, resetPassword, updatePassword, verifyUser 
 } from "../controllers/authController.js";
 import { isAuthenticated } from "../middlewares/authMiddleware.js";
 

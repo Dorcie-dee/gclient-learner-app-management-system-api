@@ -5,6 +5,8 @@ import authRouter from "./routes/authRouter.js";
 import trackRouter from "./routes/trackRoute.js";
 import courseRouter from "./routes/courseRoute.js";
 import learnerRouter from "./routes/learnerRoute.js";
+import webhookRouter from "./routes/webhookRoute.js";
+import invoiceRouter from "./routes/invoiceRouter.js";
 
 
 //database connection
@@ -37,6 +39,8 @@ app.use("/api/auth", authRouter);
 app.use("/api", learnerRouter);
 app.use("/api", trackRouter);
 app.use("/api", courseRouter);
+app.use("/api", invoiceRouter);
+app.use('/api/webhook', webhookRouter);
 
 
 
