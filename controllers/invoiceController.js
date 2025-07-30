@@ -1,10 +1,10 @@
 //const invoices = await invoiceModel.find().populate('learner').populate('track');
 import axios from "axios";
-import { createInvoiceValidator } from "../validators/invoiceValidator.js";
+import { createInvoiceValidator, updateInvoiceValidator } from "../validators/invoiceValidator.js";
 import { learnerModel } from "../models/learnerModel.js";
 import { trackModel } from "../models/trackModel.js";
 import { invoiceModel } from "../models/invoiceModel.js";
-import { generateInvoiceEmail, sendingEmail } from "../utils/mailing.js";
+import { generateInvoiceEmailTemplate, sendingEmail } from "../utils/mailing.js";
 
 
 
@@ -68,37 +68,113 @@ export const createInvoice = async (req, res) => {
       paymentDetails,
     });
 
-    const emailContent = generateInvoiceEmail({
-      firstName: learner.firstName,
-      amount,
-      paymentLink: invoice.paymentLink,
-      paymentDetails,
-      dueDate: invoice.dueDate,
-    });
 
-    await sendingEmail({
-      to: learner.email,
-      subject: emailContent.subject,
-      html: emailContent.html,
-    });
+    const emailSubject = "Your Invoice is Ready - Complete Your Payment";
+    const emailBody = generateInvoiceEmailTemplate
+      .replace('{{firstName}}', existingLearner.firstName)
+      .replace('{{amount}}', invoiceAmount)
+      .replace('{{paymentLink}}', invoice.paymentLink)
+      .replace('{{paymentDetails}}', paymentDetails)
+      .replace('{{dueDate}}', invoice.dueDate.toDateString());
 
+    try {
+      await sendingEmail(existingLearner.email, emailSubject, emailBody);
+    }
+    catch (invoiceEmailError) {
+      //delete invoice since the email failed
+      await invoiceModel.findByIdAndDelete(invoice._id);
 
-    const populatedInvoice = await invoice
-      .populate('learner')
-      .populate('track');
+      return res.status(500).json({
+        success: false,
+        message:
+          "Invoice was created but failed to send email. The invoice has been removed. Please try again.",
+        error: invoiceEmailError.message,
+      });
+    }
+
+    const populatedInvoice = await invoiceModel.findById(invoice._id)
+      .populate({ path: 'learner', select: '-password' })
+      .populate({
+        path: 'track',
+        select: 'admin name price instructor duration image description createdAt updatedAt'
+      })
+      .lean();
 
     // Respond
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: 'Invoice created successfully and email sent to learner',
       invoice: populatedInvoice,
     });
 
-  } catch (error) {
+  }
+
+  catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Server error',
       error: error.message
+    });
+  }
+};
+
+
+//update invoice
+export const updateInvoice = async (req, res) => {
+  try {
+    const { invoiceId } = req.params;
+
+    // Validate update fields
+    const { error, value } = updateInvoiceValidator.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    const invoice = await invoiceModel.findById(invoiceId);
+    if (!invoice) {
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found',
+      });
+    }
+
+    //check learner exists and has dropped out as a learner
+    if (value.learner) {
+      const learner = await learnerModel.findById(value.learner);
+      if (!learner || learner.role !== 'Learner') {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid learner',
+        });
+      }
+    }
+
+    //update invoice
+    Object.assign(invoice, value);
+    await invoice.save();
+
+    //repopulate updated invoice
+    const newPopulatedInvoice = await invoiceModel.findById(invoiceId)
+      .populate({ path: 'learner', select: '-password' })
+      .populate({
+        path: 'track',
+        select: 'admin name price instructor duration image description createdAt updatedAt'
+      })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Invoice updated successfully',
+      invoice: newPopulatedInvoice,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message,
     });
   }
 };

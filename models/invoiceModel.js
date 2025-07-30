@@ -3,7 +3,7 @@ import normalize from "normalize-mongoose";
 
 
 const invoiceSchema = new Schema({
-  learnerId: {
+  learner: {
     type: Types.ObjectId,
     ref: 'Learner',
     required: true
@@ -30,7 +30,6 @@ const invoiceSchema = new Schema({
   paystackCallbackUrl: {type: String},
 
   paymentDetails: { type: String },
-  // "paymentLink": "https://checkout.paystack.com/tpbz7t2prv1s3i1",
 
 }, {timestamps: true}
 );

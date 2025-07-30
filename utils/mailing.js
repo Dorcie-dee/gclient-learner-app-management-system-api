@@ -106,34 +106,63 @@ export const resetPasswordMailTemplate = `
 
 
 //invoice creation email
-export const generateInvoiceEmail = ({ firstName, amount, paymentLink, paymentDetails, dueDate }) => {
-    return {
-      subject: 'Your Invoice is Ready - Complete Your Payment',
-      html: `
-        <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
-            <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
-    
-              <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />        
+// export const generateInvoiceEmail =({ firstName, amount, paymentLink, paymentDetails, dueDate }) => {
+//     return {
+//       subject: 'Your Invoice is Ready - Complete Your Payment',
+//       html: `
+//         <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
+//             <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
 
-              <h2>Hello ${firstName},</h2>
-              <p>You have a new invoice generated for your track enrollment.</p>
+//               <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />        
+
+//               <h2>Hello ${firstName},</h2>
+//               <p>You have a new invoice generated for your track enrollment.</p>
+
+//               <p><strong>Amount:</strong> GHS ${amount}</p>
+//               <p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>
+//               ${paymentDetails ? `<p><strong>Details:</strong> ${paymentDetails}</p>` : ''}
+
+//               <p>Please click the button below to proceed with your payment:</p>
+//               <a href="${paymentLink}" style="background-color: #28a745; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px;">Pay Now</a>
+
+//               <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+//               <p><a href="${paymentLink}">${paymentLink}</a></p>
+
+//               <p>Thank you for choosing us!</p>
+//               <br/>
+
+//               <p style="font-size: 14px; color: #888;">— GClient Team</p>
+//             </div>
+//         </div>
+//     `
+//     };
+//   };
+
+
+//invoice creation email
+export const generateInvoiceEmailTemplate = `
+  <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
+    <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+    
+      <img src="https://your-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />        
+
+      <h2>Hello {{firstName}},</h2>
+      <p>You have a new invoice generated for your track enrollment.</p>
         
-              <p><strong>Amount:</strong> GHS ${amount}</p>
-              <p><strong>Due Date:</strong> ${new Date(dueDate).toLocaleDateString()}</p>
-              ${paymentDetails ? `<p><strong>Details:</strong> ${paymentDetails}</p>` : ''}
+      <p><strong>Amount:</strong> GHS {{amount}}</p>
+      <p><strong>Due Date:</strong> new Date{{dueDate}].toLocaleDateString()</p>
+        {{paymentDetails ? <p><strong>Details:</strong> {{paymentDetails}}</p> : ''}}
         
-              <p>Please click the button below to proceed with your payment:</p>
-              <a href="${paymentLink}" style="background-color: #28a745; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px;">Pay Now</a>
+      <p>Please click the button below to proceed with your payment:</p>
+        <a href="{{paymentLink}}" style="background-color: #28a745; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px;">Pay Now</a>
         
-              <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
-              <p><a href="${paymentLink}">${paymentLink}</a></p>
+      <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
+      <p><a href="{{paymentLink}}">{{paymentLink}}</a></p>
         
-              <p>Thank you for choosing us!</p>
-              <br/>
+      <p>Thank you for choosing us!</p>
+      <br/>
         
-              <p style="font-size: 14px; color: #888;">— GClient Team</p>
-            </div>
-        </div>
-    `
-    };
-  };
+      <p style="font-size: 14px; color: #888;">— GClient Team</p>
+    </div>
+  </div>
+`

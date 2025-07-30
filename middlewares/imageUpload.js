@@ -37,7 +37,7 @@ export const learnerImageUpload = multer({
   storage: new CloudinaryStorage({
     cloudinary,
     params: {
-      folder: "gcliet-api/learners/image-upload"
+      folder: "gclient-api/learners/image-upload"
     },
   }),
 });

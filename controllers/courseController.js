@@ -58,6 +58,7 @@ export const createCourse = async (req, res, next) => {
 };
 
 
+
 //update course
 export const updateCourse = async (req, res, next) => {
   try {
