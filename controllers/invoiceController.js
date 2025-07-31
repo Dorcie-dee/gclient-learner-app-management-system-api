@@ -75,7 +75,7 @@ export const createInvoice = async (req, res) => {
       .replace('{{amount}}', invoiceAmount)
       .replace('{{paymentLink}}', invoice.paymentLink)
       .replace('{{paymentDetails}}', paymentDetails)
-      .replace('{{dueDate}}', invoice.dueDate.toDateString());
+      .replace('{{dueDate}}', invoice.dueDate.toLocaleDateString());
 
     try {
       await sendingEmail(existingLearner.email, emailSubject, emailBody);
@@ -176,5 +176,68 @@ export const updateInvoice = async (req, res) => {
       message: 'Server error',
       error: error.message,
     });
+  }
+};
+
+
+
+export const updateInvoices = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateFields = req.body;
+    const adminUser = req.auth;
+
+    const invoice = await invoiceModel.findById(id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    const changedFields = [];
+
+    //track changes that require re-sending email
+    const fieldsToCheck = ['amount', 'dueDate', 'status'];
+
+    fieldsToCheck.forEach(field => {
+      if (updateFields[field] && updateFields[field] !== invoice[field]) {
+        changedFields.push(field);
+      }
+    });
+
+    // Apply the updates
+    Object.keys(updateFields).forEach(key => {
+      invoice[key] = updateFields[key];
+    });
+
+    // Audit tracking
+    invoice.updatedBy = adminUser._id;
+    invoice.updatedAt = new Date();
+
+    // Optional: Push to update history array
+    invoice.updateHistory = invoice.updateHistory || [];
+    invoice.updateHistory.push({
+      updatedBy: adminUser._id,
+      updatedAt: new Date(),
+      changedFields,
+    });
+
+    await invoice.save();
+
+    // Conditionally re-send invoice email
+    if (changedFields.length > 0) {
+      const learner = await User.findById(invoice.user); // or invoice.learnerId
+      await sendInvoiceEmail(learner.email, {
+        invoice,
+        subject: 'Updated Invoice Notice',
+        note: `The following fields were updated: ${changedFields.join(', ')}`,
+      });
+
+      // Log the email activity
+      console.log(`Invoice update email sent to ${learner.email} at ${new Date().toISOString()} | Changed: ${changedFields.join(', ')}`);
+    }
+
+    res.status(200).json({ message: 'Invoice updated successfully', changedFields });
+  } catch (error) {
+    console.error('Invoice update error:', error);
+    res.status(500).json({ message: 'Something went wrong' });
   }
 };
