@@ -1,4 +1,3 @@
-//const invoices = await invoiceModel.find().populate('learner').populate('track');
 import axios from "axios";
 import { createInvoiceValidator, updateInvoiceValidator } from "../validators/invoiceValidator.js";
 import { learnerModel } from "../models/learnerModel.js";
@@ -39,7 +38,7 @@ export const createInvoice = async (req, res) => {
     const invoiceAmount = amount || relatedTrack.price;
     const invoiceDueDate = dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days later
 
-    // Step 1: Initialize Paystack Transaction
+    //initialize Paystack Transaction
     const response = await axios.post(
       'https://api.paystack.co/transaction/initialize',
       {
@@ -55,7 +54,9 @@ export const createInvoice = async (req, res) => {
       }
     );
 
-    const paymentLink = response.data.data.authorization_url;
+    const paymentLink = response.data.data.authorization_url
+    const paystackReference = response.data.data.reference;
+
 
     // Step 2: Create Invoice in DB
     const invoice = await invoiceModel.create({
@@ -65,6 +66,8 @@ export const createInvoice = async (req, res) => {
       dueDate: invoiceDueDate,
       paystackCallbackUrl,
       paymentLink,
+      reference: paystackReference,
+      // paymentReference: reference,
       paymentDetails,
     });
 
@@ -73,7 +76,7 @@ export const createInvoice = async (req, res) => {
     const emailBody = generateInvoiceEmailTemplate
       .replace('{{firstName}}', existingLearner.firstName)
       .replace('{{amount}}', invoiceAmount)
-      .replace('{{paymentLink}}', invoice.paymentLink)
+      .replace(/{{paymentLink}}/g, invoice.paymentLink)
       .replace('{{paymentDetails}}', paymentDetails)
       .replace('{{dueDate}}', invoice.dueDate.toLocaleDateString());
 
@@ -119,45 +122,104 @@ export const createInvoice = async (req, res) => {
 };
 
 
-//update invoice
-export const updateInvoice = async (req, res) => {
+//verify payment
+export const verifyPayment = async (req, res) => {
+  const { reference } = req.query;
+
   try {
-    const { invoiceId } = req.params;
-
-    // Validate update fields
-    const { error, value } = updateInvoiceValidator.validate(req.body);
-    if (error) {
-      return res.status(400).json({
-        success: false,
-        message: error.message,
+    //verifying transaction from Paystack
+    const { data } = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`
+        }
       });
+
+    const paymentData = data.data;
+
+    if (paymentData.status !== 'success') {
+      return res.status(400).json({ message: 'Payment not successful' });
     }
 
-    const invoice = await invoiceModel.findById(invoiceId);
+    //updating invoice in DB
+    const invoice = await invoiceModel.findOneAndUpdate(
+      { reference: paymentData.reference },
+      {
+        status: 'paid',
+        paidAt: new Date().toISOString(),
+        paymentDetails: JSON.stringify(paymentData)
+      },
+      { new: true }
+    );
+
     if (!invoice) {
-      return res.status(404).json({
-        success: false,
-        message: 'Invoice not found',
-      });
+      console.log('Reference not found in DB:', paymentData.reference);
+
+      return res.status(404).json({ message: 'Invoice not found' });
     }
 
-    //check learner exists and has dropped out as a learner
-    if (value.learner) {
-      const learner = await learnerModel.findById(value.learner);
-      if (!learner || learner.role !== 'Learner') {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid learner',
-        });
+    return res.status(200).json({ message: 'Payment verified successfully', invoice });
+
+  } catch (error) {
+    console.error(error.response?.data || error.message);
+    res.status(500).json({ message: 'Failed to verify payment', error: error.message });
+  }
+};
+
+
+//superadmin / only eligible admin can update invoice
+export const updateInvoice = async (req, res) => {
+  const authorised = req.auth;
+
+  if (!authorised || !authorised._id) {
+    return res.status(401).json({ message: 'Unauthorized: Missing auth info' });
+  }
+
+  //validate update fields
+  const { error, value } = updateInvoiceValidator.validate(req.body);
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+
+  const { id } = req.params;
+  const updateData = req.body;
+
+  try {
+    console.log('Auth:', authorised.role, authorised._id);
+    console.log('Env Admin:', process.env.ELIGIBLE_ADMIN);
+
+    if (authorised.role !== 'SuperAdmin') {
+      if (authorised.id !== process.env.ELIGIBLE_ADMIN) {
+        return res.status(403).json({ message: 'You are not authorized to update invoices.' });
       }
     }
 
-    //update invoice
-    Object.assign(invoice, value);
-    await invoice.save();
+    const invoice = await invoiceModel.findByIdAndUpdate(id, updateData, { new: true });
 
-    //repopulate updated invoice
-    const newPopulatedInvoice = await invoiceModel.findById(invoiceId)
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    res.status(200).json({
+      message: 'Invoice updated successfully',
+      invoice,
+    });
+
+  } catch (error) {
+    return res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+
+
+// Get all invoices
+export const getAllInvoices = async (req, res) => {
+  try {
+    const invoices = await invoiceModel.find()
       .populate({ path: 'learner', select: '-password' })
       .populate({
         path: 'track',
@@ -165,79 +227,111 @@ export const updateInvoice = async (req, res) => {
       })
       .lean();
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
-      message: 'Invoice updated successfully',
-      invoice: newPopulatedInvoice,
+      count: invoices.length,
+      invoices
     });
+
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: 'Server error',
-      error: error.message,
+      error: error.message
     });
   }
 };
 
 
 
-export const updateInvoices = async (req, res) => {
+//get single invoice
+export const getSingleInvoice = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateFields = req.body;
-    const adminUser = req.auth;
+    const invoice = await invoiceModel.findById(id)
+      .populate({ path: 'learner', select: '-password' })
+      .populate({
+        path: 'track',
+        select: 'admin name price instructor duration image description createdAt updatedAt'
+      })
+      .lean();
 
-    const invoice = await invoiceModel.findById(id);
     if (!invoice) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-
-    const changedFields = [];
-
-    //track changes that require re-sending email
-    const fieldsToCheck = ['amount', 'dueDate', 'status'];
-
-    fieldsToCheck.forEach(field => {
-      if (updateFields[field] && updateFields[field] !== invoice[field]) {
-        changedFields.push(field);
-      }
-    });
-
-    // Apply the updates
-    Object.keys(updateFields).forEach(key => {
-      invoice[key] = updateFields[key];
-    });
-
-    // Audit tracking
-    invoice.updatedBy = adminUser._id;
-    invoice.updatedAt = new Date();
-
-    // Optional: Push to update history array
-    invoice.updateHistory = invoice.updateHistory || [];
-    invoice.updateHistory.push({
-      updatedBy: adminUser._id,
-      updatedAt: new Date(),
-      changedFields,
-    });
-
-    await invoice.save();
-
-    // Conditionally re-send invoice email
-    if (changedFields.length > 0) {
-      const learner = await User.findById(invoice.user); // or invoice.learnerId
-      await sendInvoiceEmail(learner.email, {
-        invoice,
-        subject: 'Updated Invoice Notice',
-        note: `The following fields were updated: ${changedFields.join(', ')}`,
+      return res.status(404).json({
+        success: false,
+        message: 'Invoice not found'
       });
-
-      // Log the email activity
-      console.log(`Invoice update email sent to ${learner.email} at ${new Date().toISOString()} | Changed: ${changedFields.join(', ')}`);
     }
 
-    res.status(200).json({ message: 'Invoice updated successfully', changedFields });
-  } catch (error) {
-    console.error('Invoice update error:', error);
-    res.status(500).json({ message: 'Something went wrong' });
+    res.status(200).json({ success: true, invoice });
+
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: err.message
+    });
   }
 };
+
+
+//update invoice
+// export const updateInvoices = async (req, res) => {
+//   try {
+//     const { invoiceId } = req.params;
+
+//     // Validate update fields
+//     const { error, value } = updateInvoiceValidator.validate(req.body);
+//     if (error) {
+//       return res.status(400).json({
+//         success: false,
+//         message: error.message,
+//       });
+//     }
+
+//     const invoice = await invoiceModel.findById(invoiceId);
+//     if (!invoice) {
+//       return res.status(404).json({
+//         success: false,
+//         message: 'Invoice not found',
+//       });
+//     }
+
+//     //check learner exists and has dropped out as a learner
+//     if (value.learner) {
+//       const learner = await learnerModel.findById(value.learner);
+//       if (!learner || learner.role !== 'Learner') {
+//         return res.status(400).json({
+//           success: false,
+//           message: 'Invalid learner',
+//         });
+//       }
+//     }
+
+//     //update invoice
+//     Object.assign(invoice, value);
+//     await invoice.save();
+
+//     //repopulate updated invoice
+//     const newPopulatedInvoice = await invoiceModel.findById(invoiceId)
+//       .populate({ path: 'learner', select: '-password' })
+//       .populate({
+//         path: 'track',
+//         select: 'admin name price instructor duration image description createdAt updatedAt'
+//       })
+//       .lean();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: 'Invoice updated successfully',
+//       invoice: newPopulatedInvoice,
+//     });
+//   } catch (error) {
+//     return res.status(500).json({
+//       success: false,
+//       message: 'Server error',
+//       error: error.message,
+//     });
+//   }
+// };
+

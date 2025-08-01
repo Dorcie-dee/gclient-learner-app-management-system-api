@@ -157,7 +157,7 @@ export const generateInvoiceEmailTemplate = `
         <a href="{{paymentLink}}" style="background-color: #28a745; padding: 10px 15px; color: white; text-decoration: none; border-radius: 4px;">Pay Now</a>
         
       <p>If the button above doesn't work, you can copy and paste the following link into your browser:</p>
-      <p><a href="{{paymentLink}}"> {{paymentLink}}</a></p>
+      <p><a href="{{paymentLink}}"> {{paymentLink}} </a></p>
         
       <p>Thank you for choosing us!</p>
       <br/>
@@ -166,3 +166,23 @@ export const generateInvoiceEmailTemplate = `
     </div>
   </div>
 `
+
+
+//sending webhook invoice payment confirmation
+export const sendPaymentConfirmation = `
+  <div style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0;">
+    <div style="max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); text-align: center;">
+    
+      <img src="https://my-logo-link.com/gclient-logo.png" alt="GClient Logo" style="height: 40px; margin-bottom: 20px;" />        
+
+      <h2>Hello {{firstName}},</h2>
+      <p>We’ve received your payment of <strong>₦{{amount}}</strong> for your invoice.</p>
+      <p><strong>Transaction Ref:</strong> Invoice #{{invoiceId}}</p>
+      <p><strong>Status:</strong> Paid</p>
+      <p>Thank you for choosing us!</p>
+      <br/>
+        
+      <p style="font-size: 14px; color: #888;">— GClient Team</p>
+    </div>
+  </div>
+  `

@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import { ratingModel } from "../models/ratingModel.js";
+import { trackModel } from "../models/trackModel.js";
 import { giveRatingValidator, updateRatingValidator } from "../validators/ratingValidator.js";
 
 
@@ -77,10 +79,13 @@ export const getAllRatings = async (req, res, next) => {
 
 
 //get rating by id. Has an endpoint at trackRoute.js
-export const getRatingById = async (req, res) => {
+export const getRatingForTrack = async (req, res) => {
   try {
 
-    const getRatingById = await ratingModel.findById(req.params.id).exec();
+    const {track} = req.params
+    const getRatingById = await ratingModel.find({
+      trackId: track
+    }).exec();
     if (!getRatingById) {
       return res.status(404).json({ message: "No rating found" })
     };

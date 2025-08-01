@@ -34,7 +34,7 @@ const adminSchema = new Schema({
 
   role: {
     type: String,
-    enum: ['Admin', 'Learner'],
+    enum: ['Admin', 'Learner', 'SuperAdmin'],
     required: true,
   },
 

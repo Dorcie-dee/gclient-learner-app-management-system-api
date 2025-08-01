@@ -21,15 +21,18 @@ export const isAuthorized = (roles) => {
                 role = 'Learner';
             }
 
-            // const user = await adminModel.findById(req.auth.id);
             if (!user) {
                 return res.status(404).json('User not found');
             }
 
-            if (!roles.includes(user.role)) {
-                return res.status(403).json('You are not authorized')
+            if (user.role === 'SuperAdmin' || roles.includes(user.role)) {
+                return next();
             }
-            next();
+
+            // if (!roles.includes(user.role)) {
+            return res.status(403).json('You are not authorized')
+            // }
+            // next();
         } catch (error) {
             console.error('Authorization error:', error);
             res.status(500).json('Authorization error')

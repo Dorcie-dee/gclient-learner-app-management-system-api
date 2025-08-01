@@ -27,11 +27,16 @@ const invoiceSchema = new Schema({
 
   paymentLink: { type: String },
 
-  paystackCallbackUrl: {type: String},
+  paystackCallbackUrl: { type: String },
 
   paymentDetails: { type: String },
 
-}, {timestamps: true}
+  //for invoice webhook
+  paidAt: { type: String },
+
+  reference: { type: String }
+
+}, { timestamps: true }
 );
 
 

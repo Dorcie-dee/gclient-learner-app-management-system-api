@@ -2,7 +2,7 @@ import { Router } from "express";
 import { createTrack, deleteTrack, getAdminTracks, getAllTracks, getTrackById, searchTracks, updateTrack } from "../controllers/trackController.js";
 import { isAuthenticated, isAuthorized } from "../middlewares/authMiddleware.js";
 import { trackImageUpload } from "../middlewares/imageUpload.js";
-import { getRatingById, giveRating } from "../controllers/ratingController.js";
+import { getRatingForTrack, giveRating } from "../controllers/ratingController.js";
 
 
 const trackRouter = Router();
@@ -29,7 +29,7 @@ trackRouter.put('/tracks/:id', isAuthenticated, isAuthorized(['Admin']), trackIm
 trackRouter.delete('/tracks/:id', isAuthenticated, isAuthorized(['Admin']), deleteTrack);
 
 //get track ratings
-trackRouter.get('/tracks/:id/ratings', isAuthenticated, getRatingById);
+trackRouter.get('/tracks/:id/ratings', isAuthenticated, getRatingForTrack);
 
 //post track ratings
 trackRouter.post('/tracks/:id/ratings', isAuthenticated,isAuthorized(['Learner']), giveRating);
