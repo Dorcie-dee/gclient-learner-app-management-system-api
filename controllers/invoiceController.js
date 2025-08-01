@@ -144,20 +144,22 @@ export const verifyPayment = async (req, res) => {
 
     //updating invoice in DB
     const invoice = await invoiceModel.findOneAndUpdate(
-      { reference: paymentData.reference },
-      {
-        status: 'paid',
-        paidAt: new Date().toISOString(),
-        paymentDetails: JSON.stringify(paymentData)
-      },
-      { new: true }
-    );
+      { reference: paymentData.reference });
 
     if (!invoice) {
-      console.log('Reference not found in DB:', paymentData.reference);
-
       return res.status(404).json({ message: 'Invoice not found' });
     }
+
+    //idempotent check: If already marked as paid, don't update again
+    if (invoice.status === 'paid') {
+      return res.status(200).json({ message: 'Already verified as paid', invoice });
+    }
+
+    //update invoice only if it's not yet paid
+    invoice.status = 'paid';
+    invoice.paidAt = new Date().toISOString();
+    invoice.paymentDetails = JSON.stringify(paymentData);
+    await invoice.save();
 
     return res.status(200).json({ message: 'Payment verified successfully', invoice });
 
@@ -169,7 +171,7 @@ export const verifyPayment = async (req, res) => {
 
 
 
-//superadmin / only eligible admin can update invoice
+//superadmin and only eligible admin can update invoice
 export const updateInvoice = async (req, res) => {
   try {
     if (!req.auth || !req.auth.id) {
@@ -213,38 +215,6 @@ export const updateInvoice = async (req, res) => {
     });
   }
 };
-
-
-
-export const updateInvoices = async (req, res) => {
-  try {
-    if (!req.auth || !req.auth.id) {
-      return res.status(401).json({ message: "Unauthorized access" });
-    }
-
-    const { id } = req.params;
-    const updates = req.body;
-
-    const invoice = await invoiceModel.findById(id);
-    if (!invoice) {
-      return res.status(404).json({ message: 'Invoice not found' });
-    }
-
-    // Apply updates
-    Object.assign(invoice, updates);
-    const updatedInvoice = await invoice.save();
-
-    res.status(200).json({
-      message: 'Invoice updated successfully',
-      invoice: updatedInvoice,
-    });
-  } catch (error) {
-    console.error('Update invoice error:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-
 
 
 
@@ -307,63 +277,40 @@ export const getSingleInvoice = async (req, res) => {
 };
 
 
-//update invoice
+
+
+
+
+
+
+
+
+
+
 // export const updateInvoices = async (req, res) => {
 //   try {
-//     const { invoiceId } = req.params;
-
-//     // Validate update fields
-//     const { error, value } = updateInvoiceValidator.validate(req.body);
-//     if (error) {
-//       return res.status(400).json({
-//         success: false,
-//         message: error.message,
-//       });
+//     if (!req.auth || !req.auth.id) {
+//       return res.status(401).json({ message: "Unauthorized access" });
 //     }
 
-//     const invoice = await invoiceModel.findById(invoiceId);
+//     const { id } = req.params;
+//     const updates = req.body;
+
+//     const invoice = await invoiceModel.findById(id);
 //     if (!invoice) {
-//       return res.status(404).json({
-//         success: false,
-//         message: 'Invoice not found',
-//       });
+//       return res.status(404).json({ message: 'Invoice not found' });
 //     }
 
-//     //check learner exists and has dropped out as a learner
-//     if (value.learner) {
-//       const learner = await learnerModel.findById(value.learner);
-//       if (!learner || learner.role !== 'Learner') {
-//         return res.status(400).json({
-//           success: false,
-//           message: 'Invalid learner',
-//         });
-//       }
-//     }
+//     // Apply updates
+//     Object.assign(invoice, updates);
+//     const updatedInvoice = await invoice.save();
 
-//     //update invoice
-//     Object.assign(invoice, value);
-//     await invoice.save();
-
-//     //repopulate updated invoice
-//     const newPopulatedInvoice = await invoiceModel.findById(invoiceId)
-//       .populate({ path: 'learner', select: '-password' })
-//       .populate({
-//         path: 'track',
-//         select: 'admin name price instructor duration image description createdAt updatedAt'
-//       })
-//       .lean();
-
-//     return res.status(200).json({
-//       success: true,
+//     res.status(200).json({
 //       message: 'Invoice updated successfully',
-//       invoice: newPopulatedInvoice,
+//       invoice: updatedInvoice,
 //     });
 //   } catch (error) {
-//     return res.status(500).json({
-//       success: false,
-//       message: 'Server error',
-//       error: error.message,
-//     });
+//     console.error('Update invoice error:', error);
+//     res.status(500).json({ message: 'Server error', error: error.message });
 //   }
 // };
-
