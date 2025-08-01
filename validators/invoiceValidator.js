@@ -16,9 +16,9 @@ export const createInvoiceValidator = Joi.object({
 
 //invoice update
 export const updateInvoiceValidator = Joi.object({
-  learner: Joi.string().required(),
+  learner: Joi.string().optional(),
 
-  paystackCallbackUrl: Joi.string().uri().required(),
+  paystackCallbackUrl: Joi.string().uri().optional(),
 
   amount: Joi.number().min(1).optional(),
 

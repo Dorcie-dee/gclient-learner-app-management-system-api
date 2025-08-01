@@ -122,6 +122,7 @@ export const createInvoice = async (req, res) => {
 };
 
 
+
 //verify payment
 export const verifyPayment = async (req, res) => {
   const { reference } = req.query;
@@ -167,32 +168,29 @@ export const verifyPayment = async (req, res) => {
 };
 
 
+
 //superadmin / only eligible admin can update invoice
 export const updateInvoice = async (req, res) => {
-  const authorised = req.auth;
-
-  if (!authorised || !authorised._id) {
-    return res.status(401).json({ message: 'Unauthorized: Missing auth info' });
-  }
-
-  //validate update fields
-  const { error, value } = updateInvoiceValidator.validate(req.body);
-  if (error) {
-    return res.status(400).json({
-      success: false,
-      message: error.message,
-    });
-  }
-
-  const { id } = req.params;
-  const updateData = req.body;
-
   try {
-    console.log('Auth:', authorised.role, authorised._id);
-    console.log('Env Admin:', process.env.ELIGIBLE_ADMIN);
+    if (!req.auth || !req.auth.id) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
 
-    if (authorised.role !== 'SuperAdmin') {
-      if (authorised.id !== process.env.ELIGIBLE_ADMIN) {
+    //validate update fields
+    const { error } = updateInvoiceValidator.validate(req.body);
+    if (error) {
+      return res.status(400).json({
+        success: false,
+        message: error.message,
+      });
+    }
+
+    const { id } = req.params;
+    const updateData = req.body;
+
+    //allow only SuperAdmin or eligible admin by _id
+    if (req.auth.role !== 'SuperAdmin') {
+      if (req.auth.id !== process.env.ELIGIBLE_ADMIN) {
         return res.status(403).json({ message: 'You are not authorized to update invoices.' });
       }
     }
@@ -209,9 +207,43 @@ export const updateInvoice = async (req, res) => {
     });
 
   } catch (error) {
-    return res.status(500).json({ message: 'Server error', error: error.message });
+    return res.status(500).json({
+      message: 'Server error',
+      error: error.message
+    });
   }
 };
+
+
+
+export const updateInvoices = async (req, res) => {
+  try {
+    if (!req.auth || !req.auth.id) {
+      return res.status(401).json({ message: "Unauthorized access" });
+    }
+
+    const { id } = req.params;
+    const updates = req.body;
+
+    const invoice = await invoiceModel.findById(id);
+    if (!invoice) {
+      return res.status(404).json({ message: 'Invoice not found' });
+    }
+
+    // Apply updates
+    Object.assign(invoice, updates);
+    const updatedInvoice = await invoice.save();
+
+    res.status(200).json({
+      message: 'Invoice updated successfully',
+      invoice: updatedInvoice,
+    });
+  } catch (error) {
+    console.error('Update invoice error:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 
 
 
