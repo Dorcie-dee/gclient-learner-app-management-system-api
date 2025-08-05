@@ -7,6 +7,7 @@ import courseRouter from "./routes/courseRoute.js";
 import learnerRouter from "./routes/learnerRoute.js";
 import webhookRouter from "./routes/webhookRoute.js";
 import invoiceRouter from "./routes/invoiceRouter.js";
+import reportRouter from "./routes/reportRoute.js";
 
 
 //database connection
@@ -41,6 +42,7 @@ app.use("/api", trackRouter);
 app.use("/api", courseRouter);
 app.use("/api", invoiceRouter);
 app.use('/api/webhook', webhookRouter);
+app.use('/api/reports', reportRouter);
 
 
 
