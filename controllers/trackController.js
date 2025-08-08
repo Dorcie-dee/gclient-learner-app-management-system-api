@@ -36,7 +36,7 @@ export const createTrack = async (req, res, next) => {
       error: error.message || 'Unknown error',
     });
   }
-  next(error);
+  // next(error);
 }
 
 

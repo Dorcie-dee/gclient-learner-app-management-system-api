@@ -17,7 +17,7 @@ export const createInvoice = async (req, res) => {
       });
     }
 
-    const { learner, paystackCallbackUrl, amount, dueDate, paymentDetails } = value;
+    const { learner, track, paystackCallbackUrl, amount, dueDate, paymentDetails } = value;
 
     const existingLearner = await learnerModel.findById(learner);
     if (!existingLearner || existingLearner.role !== 'Learner') {
@@ -27,11 +27,11 @@ export const createInvoice = async (req, res) => {
       });
     }
 
-    const relatedTrack = await trackModel.findOne().sort({ createdAt: -1 });
+    const relatedTrack = await trackModel.findById(track);
     if (!relatedTrack) {
       return res.status(400).json({
         success: false,
-        message: 'No track found to associate with invoice'
+        message: 'Invalid or non-existing track selected'
       });
     }
 
@@ -70,6 +70,18 @@ export const createInvoice = async (req, res) => {
       // paymentReference: reference,
       paymentDetails,
     });
+
+    
+    //update Learner with track and status
+    await learnerModel.findByIdAndUpdate(
+      learner,
+      {
+        $set: {
+          track: relatedTrack._id,
+          status: 'paid'
+        }
+      }
+    );
 
 
     const emailSubject = "Your Invoice is Ready - Complete Your Payment";

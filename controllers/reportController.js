@@ -25,22 +25,23 @@ export const getLearnersPerTrack = async (req, res) => {
       return res.status(401).json({ message: "Unauthorized access" });
     }
 
-    const result = await learnerModel.aggregate([
+    const result = await invoiceModel.aggregate([
       { $match: { status: 'paid' } },
       {
         $group: {
           _id: "$track",
-          // count: { $sum: 1 },
-          learnerCount: { $addToSet: "$learner" }
+          count: { $sum: 1 },
+          // learnerCount: { $addToSet: "$learner" }
 
         },
       },
+      
       {
         $project: {
           _id: 0,
           track: "$_id",
-          learners: { $size: "$learnerCount" }
-        }
+          learners: "$count"
+        },
       },
     ]);
 
@@ -97,7 +98,7 @@ export const getIncomePerTrack = async (req, res) => {
       {
         $project: {
           _id: 0,  //removes default _id
-          track: "$_id",  // rename id to track
+          track: "$_id",  // rename id to track or "$name"
           totalTrackIncome: 1,    //include totalTrackIncome
         },
       },
