@@ -17,8 +17,10 @@ export const createInvoice = async (req, res) => {
       });
     }
 
-    const { learner, track, paystackCallbackUrl, amount, dueDate, paymentDetails } = value;
+    const { learner, track, paystackCallbackUrl, dueDate, paymentDetails } = value;
+    // const { learner, track, paystackCallbackUrl, amount, dueDate, paymentDetails } = value;
 
+    //get learner
     const existingLearner = await learnerModel.findById(learner);
     if (!existingLearner || existingLearner.role !== 'Learner') {
       return res.status(404).json({
@@ -27,6 +29,7 @@ export const createInvoice = async (req, res) => {
       });
     }
 
+    //get track
     const relatedTrack = await trackModel.findById(track);
     if (!relatedTrack) {
       return res.status(400).json({
@@ -35,8 +38,17 @@ export const createInvoice = async (req, res) => {
       });
     }
 
-    const invoiceAmount = amount || relatedTrack.price;
-    const invoiceDueDate = dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days later
+    // Auto-calculate invoice amount based on learner's paymentType
+    let invoiceAmount = relatedTrack.price;
+
+    if (existingLearner.paymentType === 'part') {
+      invoiceAmount = relatedTrack.price / 2;
+    }
+
+    // const invoiceAmount = amount || relatedTrack.price;
+
+
+    const invoiceDueDate = dueDate || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // defaults to 7 days later
 
     //initialize Paystack Transaction
     const response = await axios.post(
@@ -71,7 +83,7 @@ export const createInvoice = async (req, res) => {
       paymentDetails,
     });
 
-    
+
     //update Learner with track and status
     await learnerModel.findByIdAndUpdate(
       learner,

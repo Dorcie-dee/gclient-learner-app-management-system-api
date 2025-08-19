@@ -41,8 +41,8 @@ app.use("/api", learnerRouter);
 app.use("/api", trackRouter);
 app.use("/api", courseRouter);
 app.use("/api", invoiceRouter);
-app.use('/api/webhook', webhookRouter);
-app.use('/api/reports', reportRouter);
+app.use("/api", webhookRouter);
+app.use("/api/reports", reportRouter);
 
 
 

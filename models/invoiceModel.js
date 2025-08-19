@@ -17,7 +17,13 @@ const invoiceSchema = new Schema({
 
   amount: { type: Number, required: true },
 
-  status: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
+  status: { type: String, enum: ['pending', 'paid', 'partial'], default: 'pending' },
+
+  paymentType: {
+    type: String,
+    enum: ['half', 'full'],
+    required: true
+  },
 
   dueDate: {
     type: Date,

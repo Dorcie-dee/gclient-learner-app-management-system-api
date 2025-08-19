@@ -42,7 +42,7 @@ const learnerSchema = new Schema({
 
   profileImage: { type: String },
 
-  disabled: { type: Boolean, default: false},
+  disabled: { type: Boolean, default: false },
 
   isVerified: {
     type: Boolean,
@@ -65,6 +65,18 @@ const learnerSchema = new Schema({
   resendAttempts: { type: Number, default: 0 },
 
   lastResendAt: { type: Date },
+
+  status: {
+    type: String,
+    enum: ['pending', 'paid', 'partial'],
+    default: 'pending',
+  },
+
+  track: {
+    type: Schema.Types.ObjectId,
+    ref: 'Track',
+    default: null, // Optional, just for clarity
+  },
 
 }, {
   timestamps: true,
