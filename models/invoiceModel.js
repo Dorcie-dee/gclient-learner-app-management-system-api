@@ -17,6 +17,9 @@ const invoiceSchema = new Schema({
 
   amount: { type: Number, required: true },
 
+  amountPaid: { type: Number, default: 0 }, //how much learner has actually paid
+
+
   status: { type: String, enum: ['pending', 'paid', 'partial'], default: 'pending' },
 
   paymentType: {
