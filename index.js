@@ -16,6 +16,16 @@ import reportRouter from "./routes/reportRoute.js";
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Database connected successfully.");
 
+    
+    app.get("/", (req, res) => {
+      res.json({
+        status: "success",
+        message: "GClient Learner App Management System API",
+        testSignupEndpoint: "/api/auth/signup/learner (POST)"
+      });
+    });
+
+
     //listening for incoming request
     app.listen(port, () => {
       console.log(`Server listening attentively`);
