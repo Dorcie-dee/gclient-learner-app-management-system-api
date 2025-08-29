@@ -7,6 +7,10 @@ This project covers: **authentication, email verification, learner enrollment, p
 
 ---
 
+#  🕹️ Published POSTMAN Documentation URL
+
+---
+
 ## ⚡ System Overview
 
 * 🟢 **Open Access**: Anyone can register & explore the app before paying.
@@ -312,13 +316,6 @@ POST /api/invoices
   }
 }
 ```
----
-
-#  POSTMAN Documentation URL
-
-https://documenter.getpostman.com/view/42782764/2sB3HgR45t
-
----
 
 
 ---
