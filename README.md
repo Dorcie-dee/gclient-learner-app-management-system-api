@@ -9,6 +9,8 @@ This project covers: **authentication, email verification, learner enrollment, p
 
 #  🕹️ Published POSTMAN Documentation URL
 
+https://documenter.getpostman.com/view/42782764/2sB3HgR45t
+
 ---
 
 ## ⚡ System Overview
