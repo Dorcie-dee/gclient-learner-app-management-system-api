@@ -73,7 +73,7 @@ export const registerAdmin = async (req, res) => {
     }
 
     //remove password before sending response
-    const userWithoutPassword = incomingUser.toObject();
+    const userWithoutPassword = incomingAdmin.toObject();
     delete userWithoutPassword.password;
 
     // Return response
@@ -157,7 +157,7 @@ export const registerLearner = async (req, res) => {
     }
 
     //remove password before sending response
-    const userWithoutPassword = incomingUser.toObject();
+    const userWithoutPassword = incomingLearner.toObject();
     delete userWithoutPassword.password;
 
     // Return response
