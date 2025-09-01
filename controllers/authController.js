@@ -72,10 +72,14 @@ export const registerAdmin = async (req, res) => {
       console.error('Error sending email:', emailError.message);
     }
 
+    //remove password before sending response
+    const userWithoutPassword = incomingUser.toObject();
+    delete userWithoutPassword.password;
+
     // Return response
     return res.status(201).json({
       message: 'Admin created successfully. Check your email for the OTP token.',
-      data: incomingAdmin,
+      data: userWithoutPassword,
       token,
     });
 
@@ -152,10 +156,14 @@ export const registerLearner = async (req, res) => {
       console.error('Error sending email:', emailError.message);
     }
 
+    //remove password before sending response
+    const userWithoutPassword = incomingUser.toObject();
+    delete userWithoutPassword.password;
+
     // Return response
     return res.status(201).json({
       message: 'Learner created successfully. Check your email for the OTP token.',
-      data: incomingLearner,
+      data: userWithoutPassword,
       token,
     });
 
